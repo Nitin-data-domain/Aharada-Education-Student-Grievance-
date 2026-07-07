@@ -35,10 +35,13 @@ async function sendEmail(to, subject, body) {
   // 1. If Google Apps Script proxy is configured (Bypasses Render SMTP Block)
   if (process.env.GOOGLE_SCRIPT_URL) {
     try {
-      const response = await fetch(process.env.GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, subject, body }),
+      const url = new URL(process.env.GOOGLE_SCRIPT_URL);
+      url.searchParams.append('to', to);
+      url.searchParams.append('subject', subject);
+      url.searchParams.append('body', body);
+      
+      const response = await fetch(url.toString(), {
+        method: 'GET',
       });
       if (!response.ok) throw new Error('Google Script returned error');
       console.log(`📧 Email sent successfully via Google Proxy to ${to}`);
