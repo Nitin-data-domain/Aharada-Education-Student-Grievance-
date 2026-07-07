@@ -74,6 +74,20 @@ app.listen(PORT, () => {
   ║                                                   ║
   ╚═══════════════════════════════════════════════════╝
   `);
+
+  // Prevent Render Free Tier from spinning down (pings every 14 minutes)
+  const renderUrl = process.env.RENDER_EXTERNAL_URL;
+  if (renderUrl) {
+    const https = require('https');
+    setInterval(() => {
+      https.get(`${renderUrl}/api/health`, (resp) => {
+        if (resp.statusCode === 200) console.log('🔄 Self-ping successful to keep server awake.');
+        else console.log('⚠️ Self-ping failed with status code:', resp.statusCode);
+      }).on('error', (err) => {
+        console.error('❌ Self-ping error:', err.message);
+      });
+    }, 14 * 60 * 1000); // 14 minutes
+  }
 });
 
 module.exports = app;
