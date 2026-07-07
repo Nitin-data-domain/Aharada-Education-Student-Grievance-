@@ -68,8 +68,9 @@ async function sendEmail(to, subject, body) {
     console.log(`📧 Email sent successfully to ${to} (Message ID: ${info.messageId})`);
     return info;
   } catch (error) {
-    console.error(`❌ Failed to send email to ${to}:`, error);
-    throw error;
+    console.error(`❌ Failed to send email to ${to} (Render likely blocked the SMTP port):`, error.message);
+    // Return a resolved promise instead of throwing, so the app doesn't crash on free tiers
+    return { messageId: 'FAILED_BLOCKED', status: 'failed' };
   }
 }
 
