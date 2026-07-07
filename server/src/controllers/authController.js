@@ -12,9 +12,7 @@ require('dotenv').config();
  * Generate a 6-digit OTP
  */
 function generateOTP() {
-  // Hardcoded to 123456 because Render Free Tier blocks SMTP email ports.
-  // This allows the manager demonstration to work flawlessly!
-  return '123456'; 
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // In-memory OTP store for registration (email -> { otp, expiresAt, data })

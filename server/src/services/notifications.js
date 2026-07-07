@@ -32,7 +32,24 @@ const nodemailer = require('nodemailer');
  * SendEmail using Nodemailer
  */
 async function sendEmail(to, subject, body) {
-  // If SMTP is not configured, fallback to mock console log
+  // 1. If Google Apps Script proxy is configured (Bypasses Render SMTP Block)
+  if (process.env.GOOGLE_SCRIPT_URL) {
+    try {
+      const response = await fetch(process.env.GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, body }),
+      });
+      if (!response.ok) throw new Error('Google Script returned error');
+      console.log(`📧 Email sent successfully via Google Proxy to ${to}`);
+      return { messageId: 'GOOGLE_PROXY_' + Date.now(), status: 'delivered' };
+    } catch (error) {
+      console.error(`❌ Google Proxy email failed:`, error.message);
+      return { messageId: 'FAILED_PROXY', status: 'failed' };
+    }
+  }
+
+  // 2. If no SMTP is configured at all
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.log('\n📧 ═══════════════════════════════════════════');
     console.log('   MOCK EMAIL NOTIFICATION (SMTP NOT CONFIGURED)');
@@ -44,6 +61,7 @@ async function sendEmail(to, subject, body) {
     return Promise.resolve({ messageId: 'MOCK_EMAIL_' + Date.now(), status: 'delivered' });
   }
 
+  // 3. Fallback to standard Nodemailer (Will likely timeout on Render Free Tier)
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
