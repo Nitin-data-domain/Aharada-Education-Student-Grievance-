@@ -106,7 +106,7 @@ async function updateProfile(req, res) {
            program_name = COALESCE($3, program_name)
        WHERE user_id = $4
        RETURNING user_id, name, email, phone, role, program_name`,
-      [name, phone, program_name, req.user.user_id]
+      [name || null, phone || null, program_name || null, req.user.user_id]
     );
     res.json({ user: result.rows[0], message: 'Profile updated.' });
   } catch (error) {

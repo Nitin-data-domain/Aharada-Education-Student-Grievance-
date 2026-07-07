@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import StatusBadge from './StatusBadge';
 
 export default function HODDashboard() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState('submissions'); // 'submissions' | 'users' | 'programs' | 'reports'
   
   // Reports state
