@@ -46,11 +46,16 @@ async function sendEmail(to, subject, body) {
 
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail', // You can change this or use host/port for other providers
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // false for 587
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      connectionTimeout: 10000, // 10 seconds timeout
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
 
     const info = await transporter.sendMail({
