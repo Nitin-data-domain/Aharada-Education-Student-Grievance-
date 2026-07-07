@@ -1,6 +1,7 @@
 // ============================================================
-// Antigravity Model — Mock Notification Service
-// Replace with real Twilio & SendGrid integrations in production
+// Aharada Education — Notification Service
+// Email via Gmail SMTP (port 465 SSL — works on Render Free Tier)
+// OR Google Apps Script Proxy (set GOOGLE_SCRIPT_URL env var)
 // ============================================================
 
 /**
@@ -64,19 +65,19 @@ async function sendEmail(to, subject, body) {
     return Promise.resolve({ messageId: 'MOCK_EMAIL_' + Date.now(), status: 'delivered' });
   }
 
-  // 3. Fallback to standard Nodemailer (Will likely timeout on Render Free Tier)
+  // 3. Nodemailer via Gmail port 465 SSL (works on Render Free Tier)
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // false for 587
+      port: 465,
+      secure: true, // true for port 465 (SSL) — Render allows this port
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 10000, // 10 seconds timeout
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
     });
 
     const info = await transporter.sendMail({
@@ -84,15 +85,59 @@ async function sendEmail(to, subject, body) {
       to,
       subject,
       text: body,
+      html: wrapHtml(body, subject),
     });
 
     console.log(`📧 Email sent successfully to ${to} (Message ID: ${info.messageId})`);
     return info;
   } catch (error) {
-    console.error(`❌ Failed to send email to ${to} (Render likely blocked the SMTP port):`, error.message);
-    // Return a resolved promise instead of throwing, so the app doesn't crash on free tiers
-    return { messageId: 'FAILED_BLOCKED', status: 'failed' };
+    console.error(`❌ Failed to send email to ${to}:`, error.message);
+    // Return resolved so app doesn't crash — check logs for failures
+    return { messageId: 'FAILED_SMTP', status: 'failed' };
   }
+}
+
+/**
+ * Wrap plain text in a branded HTML email template
+ */
+function wrapHtml(text, subject) {
+  const safeText = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f2f8;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.10);">
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#6B4FBB 0%,#4F8BDA 100%);padding:28px 36px;">
+            <h1 style="color:#fff;margin:0;font-size:22px;font-weight:700;letter-spacing:-0.3px;">Aharada Education</h1>
+            <p style="color:rgba(255,255,255,0.75);margin:4px 0 0;font-size:13px;">Student Grievance & Task Portal</p>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px 36px;">
+            <h2 style="color:#1a1a2e;font-size:17px;margin:0 0 16px;">${subject}</h2>
+            <p style="color:#444;font-size:15px;line-height:1.75;margin:0;">${safeText}</p>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f7f8fc;padding:18px 36px;border-top:1px solid #eee;text-align:center;">
+            <p style="color:#aaa;font-size:12px;margin:0;">© ${new Date().getFullYear()} Aharada Education. This is an automated message — please do not reply.</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
 /**
